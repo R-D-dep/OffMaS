@@ -16,17 +16,35 @@ import * as errors from "../../errors";
 import { Request } from "express";
 import { plainToClass } from "class-transformer";
 import { ApiNestedQuery } from "../../decorators/api-nested-query.decorator";
+import * as nestAccessControl from "nest-access-control";
+import * as defaultAuthGuard from "../../auth/defaultAuth.guard";
 import { OfficeService } from "../office.service";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { OfficeCreateInput } from "./OfficeCreateInput";
 import { Office } from "./Office";
 import { OfficeFindManyArgs } from "./OfficeFindManyArgs";
 import { OfficeWhereUniqueInput } from "./OfficeWhereUniqueInput";
 import { OfficeUpdateInput } from "./OfficeUpdateInput";
 
+@swagger.ApiBearerAuth()
+@common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
 export class OfficeControllerBase {
-  constructor(protected readonly service: OfficeService) {}
+  constructor(
+    protected readonly service: OfficeService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Post()
   @swagger.ApiCreatedResponse({ type: Office })
+  @nestAccessControl.UseRoles({
+    resource: "Office",
+    action: "create",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async createOffice(@common.Body() data: OfficeCreateInput): Promise<Office> {
     return await this.service.createOffice({
       data: data,
@@ -40,9 +58,18 @@ export class OfficeControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get()
   @swagger.ApiOkResponse({ type: [Office] })
   @ApiNestedQuery(OfficeFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "Office",
+    action: "read",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async offices(@common.Req() request: Request): Promise<Office[]> {
     const args = plainToClass(OfficeFindManyArgs, request.query);
     return this.service.offices({
@@ -57,9 +84,18 @@ export class OfficeControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id")
   @swagger.ApiOkResponse({ type: Office })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Office",
+    action: "read",
+    possession: "own",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async office(
     @common.Param() params: OfficeWhereUniqueInput
   ): Promise<Office | null> {
@@ -81,9 +117,18 @@ export class OfficeControllerBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Patch("/:id")
   @swagger.ApiOkResponse({ type: Office })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Office",
+    action: "update",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async updateOffice(
     @common.Param() params: OfficeWhereUniqueInput,
     @common.Body() data: OfficeUpdateInput
@@ -113,6 +158,14 @@ export class OfficeControllerBase {
   @common.Delete("/:id")
   @swagger.ApiOkResponse({ type: Office })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Office",
+    action: "delete",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async deleteOffice(
     @common.Param() params: OfficeWhereUniqueInput
   ): Promise<Office | null> {

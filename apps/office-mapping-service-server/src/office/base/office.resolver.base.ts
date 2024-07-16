@@ -13,6 +13,12 @@ import * as graphql from "@nestjs/graphql";
 import { GraphQLError } from "graphql";
 import { isRecordNotFoundError } from "../../prisma.util";
 import { MetaQueryPayload } from "../../util/MetaQueryPayload";
+import * as nestAccessControl from "nest-access-control";
+import * as gqlACGuard from "../../auth/gqlAC.guard";
+import { GqlDefaultAuthGuard } from "../../auth/gqlDefaultAuth.guard";
+import * as common from "@nestjs/common";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
 import { Office } from "./Office";
 import { OfficeCountArgs } from "./OfficeCountArgs";
 import { OfficeFindManyArgs } from "./OfficeFindManyArgs";
@@ -21,10 +27,20 @@ import { CreateOfficeArgs } from "./CreateOfficeArgs";
 import { UpdateOfficeArgs } from "./UpdateOfficeArgs";
 import { DeleteOfficeArgs } from "./DeleteOfficeArgs";
 import { OfficeService } from "../office.service";
+@common.UseGuards(GqlDefaultAuthGuard, gqlACGuard.GqlACGuard)
 @graphql.Resolver(() => Office)
 export class OfficeResolverBase {
-  constructor(protected readonly service: OfficeService) {}
+  constructor(
+    protected readonly service: OfficeService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
 
+  @graphql.Query(() => MetaQueryPayload)
+  @nestAccessControl.UseRoles({
+    resource: "Office",
+    action: "read",
+    possession: "any",
+  })
   async _officesMeta(
     @graphql.Args() args: OfficeCountArgs
   ): Promise<MetaQueryPayload> {
@@ -34,12 +50,24 @@ export class OfficeResolverBase {
     };
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => [Office])
+  @nestAccessControl.UseRoles({
+    resource: "Office",
+    action: "read",
+    possession: "any",
+  })
   async offices(@graphql.Args() args: OfficeFindManyArgs): Promise<Office[]> {
     return this.service.offices(args);
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => Office, { nullable: true })
+  @nestAccessControl.UseRoles({
+    resource: "Office",
+    action: "read",
+    possession: "own",
+  })
   async office(
     @graphql.Args() args: OfficeFindUniqueArgs
   ): Promise<Office | null> {
@@ -50,7 +78,13 @@ export class OfficeResolverBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => Office)
+  @nestAccessControl.UseRoles({
+    resource: "Office",
+    action: "create",
+    possession: "any",
+  })
   async createOffice(@graphql.Args() args: CreateOfficeArgs): Promise<Office> {
     return await this.service.createOffice({
       ...args,
@@ -58,7 +92,13 @@ export class OfficeResolverBase {
     });
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => Office)
+  @nestAccessControl.UseRoles({
+    resource: "Office",
+    action: "update",
+    possession: "any",
+  })
   async updateOffice(
     @graphql.Args() args: UpdateOfficeArgs
   ): Promise<Office | null> {
@@ -78,6 +118,11 @@ export class OfficeResolverBase {
   }
 
   @graphql.Mutation(() => Office)
+  @nestAccessControl.UseRoles({
+    resource: "Office",
+    action: "delete",
+    possession: "any",
+  })
   async deleteOffice(
     @graphql.Args() args: DeleteOfficeArgs
   ): Promise<Office | null> {
