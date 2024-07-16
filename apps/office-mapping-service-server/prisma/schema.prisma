@@ -7,20 +7,20 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model Office {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  name      String?
-  floorPlan Json?
-}
-
 model Workstation {
   id               String   @id @default(cuid())
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   label            String?
   assignedEmployee String?
+}
+
+model Office {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String?
+  floorPlan Json?
 }
 
 model Employee {
@@ -32,4 +32,23 @@ model Employee {
   contactDetails String?
   photo          Json?
   name           String?
+}
+
+model Role {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String?
+}
+
+model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  firstName String?
+  lastName  String?
+  username  String   @unique
+  email     String?  @unique
+  password  String
+  roles     Json
 }

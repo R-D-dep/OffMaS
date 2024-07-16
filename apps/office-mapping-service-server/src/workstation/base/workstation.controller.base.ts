@@ -16,17 +16,35 @@ import * as errors from "../../errors";
 import { Request } from "express";
 import { plainToClass } from "class-transformer";
 import { ApiNestedQuery } from "../../decorators/api-nested-query.decorator";
+import * as nestAccessControl from "nest-access-control";
+import * as defaultAuthGuard from "../../auth/defaultAuth.guard";
 import { WorkstationService } from "../workstation.service";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { WorkstationCreateInput } from "./WorkstationCreateInput";
 import { Workstation } from "./Workstation";
 import { WorkstationFindManyArgs } from "./WorkstationFindManyArgs";
 import { WorkstationWhereUniqueInput } from "./WorkstationWhereUniqueInput";
 import { WorkstationUpdateInput } from "./WorkstationUpdateInput";
 
+@swagger.ApiBearerAuth()
+@common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
 export class WorkstationControllerBase {
-  constructor(protected readonly service: WorkstationService) {}
+  constructor(
+    protected readonly service: WorkstationService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Post()
   @swagger.ApiCreatedResponse({ type: Workstation })
+  @nestAccessControl.UseRoles({
+    resource: "Workstation",
+    action: "create",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async createWorkstation(
     @common.Body() data: WorkstationCreateInput
   ): Promise<Workstation> {
@@ -42,9 +60,18 @@ export class WorkstationControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get()
   @swagger.ApiOkResponse({ type: [Workstation] })
   @ApiNestedQuery(WorkstationFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "Workstation",
+    action: "read",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async workstations(@common.Req() request: Request): Promise<Workstation[]> {
     const args = plainToClass(WorkstationFindManyArgs, request.query);
     return this.service.workstations({
@@ -59,9 +86,18 @@ export class WorkstationControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id")
   @swagger.ApiOkResponse({ type: Workstation })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Workstation",
+    action: "read",
+    possession: "own",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async workstation(
     @common.Param() params: WorkstationWhereUniqueInput
   ): Promise<Workstation | null> {
@@ -83,9 +119,18 @@ export class WorkstationControllerBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Patch("/:id")
   @swagger.ApiOkResponse({ type: Workstation })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Workstation",
+    action: "update",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async updateWorkstation(
     @common.Param() params: WorkstationWhereUniqueInput,
     @common.Body() data: WorkstationUpdateInput
@@ -115,6 +160,14 @@ export class WorkstationControllerBase {
   @common.Delete("/:id")
   @swagger.ApiOkResponse({ type: Workstation })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Workstation",
+    action: "delete",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async deleteWorkstation(
     @common.Param() params: WorkstationWhereUniqueInput
   ): Promise<Workstation | null> {

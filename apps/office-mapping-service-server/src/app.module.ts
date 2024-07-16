@@ -1,7 +1,9 @@
 import { Module } from "@nestjs/common";
-import { OfficeModule } from "./office/office.module";
 import { WorkstationModule } from "./workstation/workstation.module";
+import { OfficeModule } from "./office/office.module";
 import { EmployeeModule } from "./employee/employee.module";
+import { RoleModule } from "./role/role.module";
+import { UserModule } from "./user/user.module";
 import { HealthModule } from "./health/health.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { SecretsManagerModule } from "./providers/secrets/secretsManager.module";
@@ -11,12 +13,19 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { GraphQLModule } from "@nestjs/graphql";
 import { ApolloDriver, ApolloDriverConfig } from "@nestjs/apollo";
 
+import { ACLModule } from "./auth/acl.module";
+import { AuthModule } from "./auth/auth.module";
+
 @Module({
   controllers: [],
   imports: [
-    OfficeModule,
+    ACLModule,
+    AuthModule,
     WorkstationModule,
+    OfficeModule,
     EmployeeModule,
+    RoleModule,
+    UserModule,
     HealthModule,
     PrismaModule,
     SecretsManagerModule,

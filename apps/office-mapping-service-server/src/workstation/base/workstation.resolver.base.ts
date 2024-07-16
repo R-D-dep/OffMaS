@@ -13,6 +13,12 @@ import * as graphql from "@nestjs/graphql";
 import { GraphQLError } from "graphql";
 import { isRecordNotFoundError } from "../../prisma.util";
 import { MetaQueryPayload } from "../../util/MetaQueryPayload";
+import * as nestAccessControl from "nest-access-control";
+import * as gqlACGuard from "../../auth/gqlAC.guard";
+import { GqlDefaultAuthGuard } from "../../auth/gqlDefaultAuth.guard";
+import * as common from "@nestjs/common";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
 import { Workstation } from "./Workstation";
 import { WorkstationCountArgs } from "./WorkstationCountArgs";
 import { WorkstationFindManyArgs } from "./WorkstationFindManyArgs";
@@ -21,10 +27,20 @@ import { CreateWorkstationArgs } from "./CreateWorkstationArgs";
 import { UpdateWorkstationArgs } from "./UpdateWorkstationArgs";
 import { DeleteWorkstationArgs } from "./DeleteWorkstationArgs";
 import { WorkstationService } from "../workstation.service";
+@common.UseGuards(GqlDefaultAuthGuard, gqlACGuard.GqlACGuard)
 @graphql.Resolver(() => Workstation)
 export class WorkstationResolverBase {
-  constructor(protected readonly service: WorkstationService) {}
+  constructor(
+    protected readonly service: WorkstationService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
 
+  @graphql.Query(() => MetaQueryPayload)
+  @nestAccessControl.UseRoles({
+    resource: "Workstation",
+    action: "read",
+    possession: "any",
+  })
   async _workstationsMeta(
     @graphql.Args() args: WorkstationCountArgs
   ): Promise<MetaQueryPayload> {
@@ -34,14 +50,26 @@ export class WorkstationResolverBase {
     };
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => [Workstation])
+  @nestAccessControl.UseRoles({
+    resource: "Workstation",
+    action: "read",
+    possession: "any",
+  })
   async workstations(
     @graphql.Args() args: WorkstationFindManyArgs
   ): Promise<Workstation[]> {
     return this.service.workstations(args);
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => Workstation, { nullable: true })
+  @nestAccessControl.UseRoles({
+    resource: "Workstation",
+    action: "read",
+    possession: "own",
+  })
   async workstation(
     @graphql.Args() args: WorkstationFindUniqueArgs
   ): Promise<Workstation | null> {
@@ -52,7 +80,13 @@ export class WorkstationResolverBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => Workstation)
+  @nestAccessControl.UseRoles({
+    resource: "Workstation",
+    action: "create",
+    possession: "any",
+  })
   async createWorkstation(
     @graphql.Args() args: CreateWorkstationArgs
   ): Promise<Workstation> {
@@ -62,7 +96,13 @@ export class WorkstationResolverBase {
     });
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => Workstation)
+  @nestAccessControl.UseRoles({
+    resource: "Workstation",
+    action: "update",
+    possession: "any",
+  })
   async updateWorkstation(
     @graphql.Args() args: UpdateWorkstationArgs
   ): Promise<Workstation | null> {
@@ -82,6 +122,11 @@ export class WorkstationResolverBase {
   }
 
   @graphql.Mutation(() => Workstation)
+  @nestAccessControl.UseRoles({
+    resource: "Workstation",
+    action: "delete",
+    possession: "any",
+  })
   async deleteWorkstation(
     @graphql.Args() args: DeleteWorkstationArgs
   ): Promise<Workstation | null> {
